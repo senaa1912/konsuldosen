@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KonsulDosen – Prototipe</title>
+<style>
+:root{--bg:#f4f1ea;--card:#fff;--ink:#14213d;--mut:#5b6478;--line:#e1dccf;--pri:#1f6f78;--pi:#fff;--ok:#2e7d32;--okb:#e3f1e4;--wt:#8a5a00;--wtb:#fdf0d2;--no:#b3261e;--nob:#fbe3e1;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1626;--card:#19233a;--ink:#eef1f7;--mut:#a3adc2;--line:#2b3753;--pri:#58b7c0;--pi:#07262a;--ok:#7fd18a;--okb:#17321c;--wt:#f0c15a;--wtb:#3a2d0b;--no:#ff9d95;--nob:#401a17;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1626;--card:#19233a;--ink:#eef1f7;--mut:#a3adc2;--line:#2b3753;--pri:#58b7c0;--pi:#07262a;--ok:#7fd18a;--okb:#17321c;--wt:#f0c15a;--wtb:#3a2d0b;--no:#ff9d95;--nob:#401a17;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{max-width:420px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+main{flex:1;padding:18px;overflow-x:auto}
+h2{font-size:20px;margin:0 0 4px}h3{font-size:16px;margin:0 0 6px}
+.mut{color:var(--mut);font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:0 0 12px}
+label{display:block;font-size:14px;font-weight:600;margin:12px 0 4px}
+input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:inherit}
+button{font:inherit;cursor:pointer}
+.btn{width:100%;margin-top:16px;padding:12px;border:0;border-radius:10px;background:var(--pri);color:var(--pi);font-weight:700}
+.btn.s{width:auto;margin:8px 8px 0 0;padding:8px 14px}
+.btn.g{background:var(--nob);color:var(--no)}
+.lnk{background:none;border:0;color:var(--pri);font-weight:600}
+.err{background:var(--nob);color:var(--no);padding:10px;border-radius:10px;margin-top:12px;font-size:14px}
+.okm{background:var(--okb);color:var(--ok);padding:10px;border-radius:10px;margin-bottom:12px;font-size:14px}
+.b{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:700}
+.Menunggu{background:var(--wtb);color:var(--wt)}.Disetujui{background:var(--okb);color:var(--ok)}.Ditolak{background:var(--nob);color:var(--no)}
+.row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.stats{display:flex;gap:8px;margin-bottom:12px}.stats .card{flex:1;text-align:center;margin:0}.stats b{font-size:24px;display:block}
+nav{display:flex;border-top:1px solid var(--line);background:var(--card)}
+nav button{flex:1;padding:14px 4px;border:0;background:none;color:var(--mut);font-weight:600}
+nav button.on{color:var(--pri);border-top:3px solid var(--pri);padding-top:11px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+var DOSEN=[{id:'d1',n:'Dr. Budi Santoso, M.Kom.'},{id:'d2',n:'Ibu Sari Wulandari, M.T.'},{id:'d3',n:'Pak Andi Prasetyo, M.Sc.'}];
+var AKUN={'2024001':{pw:'mhs123',role:'mhs',n:'Mahasiswa Contoh'},'dosen1':{pw:'dosen123',role:'dsn',n:DOSEN[0].n,id:'d1'},'dosen2':{pw:'dosen123',role:'dsn',n:DOSEN[1].n,id:'d2'},'dosen3':{pw:'dosen123',role:'dsn',n:DOSEN[2].n,id:'d3'}};
+var S={user:null,tab:'home',err:'',msg:'',f:{},nid:4,reqs:[
+{id:1,d:'d1',t:'Bimbingan proposal penelitian',tg:'2026-11-25',j:'10:00',c:'',s:'Disetujui'},
+{id:2,d:'d1',t:'Konsultasi nilai tugas UML',tg:'2026-11-27',j:'13:00',c:'',s:'Menunggu'},
+{id:3,d:'d1',t:'Diskusi topik tugas akhir',tg:'2026-11-28',j:'09:00',c:'',s:'Menunggu'}]};
+var SEED=JSON.stringify({nid:S.nid,reqs:S.reqs});
+try{var sv=localStorage.getItem('konsuldosen');if(sv){var o=JSON.parse(sv);if(o&&o.reqs){S.reqs=o.reqs;S.nid=o.nid}}}catch(e){}
+var DB=null,MODE='lokal';
+function modeText(){return MODE==='online'?'Mode online: data sinkron antar perangkat.':'Mode lokal: data hanya tersimpan di perangkat ini.'}
+function dberr(){S.err='Data belum tersimpan ke server. Pastikan kamu login ke claude.ai dan punya akses Editor.';render()}
+function save(){if(DB)return;try{localStorage.setItem('konsuldosen',JSON.stringify({nid:S.nid,reqs:S.reqs}))}catch(e){}}
+function esc(x){return String(x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function dn(id){return DOSEN.filter(function(d){return d.id===id})[0].n}
+function fd(t){return new Date(t+'T00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})}
+function item(r,dsn){
+  var h='<div class="card"><div class="row"><h3>'+esc(r.t)+'</h3><span class="b '+r.s+'">'+r.s+'</span></div>'
+  +'<div class="mut">'+(dsn?'Mahasiswa Contoh':esc(dn(r.d)))+'<br>'+fd(r.tg)+' · '+r.j+' WIB</div>'
+  +(r.c?'<div class="mut">Catatan: '+esc(r.c)+'</div>':'');
+  if(dsn&&r.s==='Menunggu')h+='<button class="btn s" data-a="ok" data-id="'+r.id+'">Setujui</button><button class="btn s g" data-a="no" data-id="'+r.id+'">Tolak</button>';
+  return h+'</div>';
+}
+function vLogin(){return '<main><h2 style="margin-top:40px">KonsulDosen</h2><p class="mut">Ajukan dan pantau jadwal konsultasi dengan dosen.</p>'
+ +'<label for="u">NIM / Username</label><input id="u" autocomplete="off" value="'+esc(S.f.u||'')+'">'
+ +'<label for="p">Password</label><input id="p" type="password">'
+ +(S.err?'<div class="err">'+S.err+'</div>':'')
+ +'<button class="btn" data-a="login">Masuk</button>'
+ +'<div class="card mut" style="margin-top:20px">Akun contoh (dummy):<br>Mahasiswa: 2024001 / mhs123<br>Dosen: dosen1 (Dr. Budi), dosen2 (Bu Sari), dosen3 (Pak Andi), password semuanya dosen123<br><span id="mode">'+modeText()+'</span><br><button class="lnk" data-a="reset">Reset data demo</button></div></main>'}
+function vHome(){
+ var m=S.reqs,c=function(s){return m.filter(function(r){return r.s===s}).length};
+ var next=m.filter(function(r){return r.s==='Disetujui'})[0];
+ return '<h2>Halo, '+esc(S.user.n)+'</h2><p class="mut">Ringkasan permintaan konsultasimu.</p>'
+ +'<div class="stats"><div class="card"><b>'+c('Menunggu')+'</b><span class="mut">Menunggu</span></div><div class="card"><b>'+c('Disetujui')+'</b><span class="mut">Disetujui</span></div><div class="card"><b>'+c('Ditolak')+'</b><span class="mut">Ditolak</span></div></div>'
+ +(next?'<h3>Jadwal terdekat</h3>'+item(next,false):'<p class="mut">Belum ada jadwal yang disetujui.</p>')
+ +'<button class="btn" data-a="tab" data-id="form">Ajukan Konsultasi</button>'}
+function vForm(){
+ var f=S.f,o=DOSEN.map(function(d){return '<option value="'+d.id+'"'+(f.d===d.id?' selected':'')+'>'+esc(d.n)+'</option>'}).join('');
+ return '<h2>Ajukan Konsultasi</h2><label for="fd">Dosen</label><select id="fd"><option value="">Pilih dosen</option>'+o+'</select>'
+ +'<label for="ft">Topik</label><input id="ft" value="'+esc(f.t||'')+'" placeholder="Mis. bimbingan tugas akhir">'
+ +'<label for="fg">Tanggal</label><input id="fg" type="date" value="'+esc(f.tg||'')+'">'
+ +'<label for="fj">Jam</label><input id="fj" type="time" value="'+esc(f.j||'')+'">'
+ +'<label for="fc">Catatan (opsional)</label><textarea id="fc" rows="3">'+esc(f.c||'')+'</textarea>'
+ +(S.err?'<div class="err">'+S.err+'</div>':'')+'<button class="btn" data-a="kirim">Kirim Permintaan</button>'}
+function vRiw(){
+ var m=S.reqs.slice().reverse();
+ return '<h2>Riwayat &amp; Status</h2>'+(S.err?'<div class="err">'+S.err+'</div>':'')+(S.msg?'<div class="okm">'+S.msg+'</div>':'')+(m.length?m.map(function(r){return item(r,false)}).join(''):'<p class="mut">Belum ada permintaan.</p>')}
+function vDsn(){
+ var m=S.reqs.filter(function(r){return r.d===S.user.id}).reverse();
+ return '<h2>Permintaan Masuk</h2><p class="mut">Tinjau permintaan konsultasi dari mahasiswa.</p>'+(S.err?'<div class="err">'+S.err+'</div>':'')+(m.length?m.map(function(r){return item(r,true)}).join(''):'<p class="mut">Belum ada permintaan.</p>')}
+function render(){
+ save();var u=S.user,h;
+ if(!u)h=vLogin();
+ else{
+  var v=u.role==='dsn'?vDsn():(S.tab==='form'?vForm():S.tab==='riw'?vRiw():vHome());
+  h='<header><b>KonsulDosen</b><button class="lnk" data-a="out">Keluar</button></header><main>'+v+'</main>';
+  if(u.role==='mhs'){var t=[['home','Beranda'],['form','Ajukan'],['riw','Riwayat']];
+   h+='<nav>'+t.map(function(x){return '<button data-a="tab" data-id="'+x[0]+'"'+(S.tab===x[0]?' class="on"':'')+'>'+x[1]+'</button>'}).join('')+'</nav>'}
+ }
+ document.getElementById('app').innerHTML=h;
+}
+function val(id){var e=document.getElementById(id);return e?e.value.trim():''}
+function act(a,id){
+ if(a==='login'){
+  var u=val('u'),p=document.getElementById('p').value;S.f={u:u};
+  if(!u||!p){S.err='Username dan password wajib diisi.'}
+  else if(!AKUN[u]||AKUN[u].pw!==p){S.err='Username atau password salah.'}
+  else{S.user=AKUN[u];S.tab='home';S.err='';S.f={}}
+ }else if(a==='out'){S.user=null;S.err='';S.msg='';S.f={}}
+ else if(a==='reset'){var sd=JSON.parse(SEED);S.err='';S.f={};
+  if(DB){var col=DB.collection('reqs'),keep={};sd.reqs.forEach(function(r){keep['r'+r.id]=1;col.doc('r'+r.id).set(r).catch(dberr)});S.reqs.forEach(function(r){if(!keep['r'+r.id])col.doc('r'+r.id).delete().catch(dberr)})}
+  S.reqs=sd.reqs;S.nid=sd.nid}
+ else if(a==='tab'){S.tab=id;S.err='';if(id!=='riw')S.msg=''}
+ else if(a==='kirim'){
+  S.f={d:val('fd'),t:val('ft'),tg:val('fg'),j:val('fj'),c:val('fc')};var f=S.f;
+  if(!f.d)S.err='Pilih dosen terlebih dahulu.';
+  else if(!f.t)S.err='Topik konsultasi wajib diisi.';
+  else if(!f.tg||!f.j)S.err='Tanggal dan jam wajib diisi.';
+  else{var nr={id:Date.now(),d:f.d,t:f.t,tg:f.tg,j:f.j,c:f.c,s:'Menunggu'};S.reqs.push(nr);if(DB)DB.collection('reqs').doc('r'+nr.id).set(nr).catch(dberr);S.f={};S.err='';S.msg='Permintaan terkirim. Statusnya Menunggu respons dosen.';S.tab='riw'}
+ }else if(a==='ok'||a==='no'){
+  var ns=a==='ok'?'Disetujui':'Ditolak';S.reqs.forEach(function(r){if(String(r.id)===id)r.s=ns});if(DB)DB.collection('reqs').doc('r'+id).update({s:ns}).catch(dberr);
+ }
+ render();
+}
+document.addEventListener('click',function(e){var t=e.target.closest('[data-a]');if(t)act(t.dataset.a,t.dataset.id)});
+render();
+(function(){try{if(!window.claude||!claude.use)return;claude.use('db').then(function(db){if(!db)return;DB=db;MODE='online';var m=document.getElementById('mode');if(m)m.textContent=modeText();db.collection('reqs').onSnapshot(function(sn){var a=[];sn.docs.forEach(function(d){var x=d.data();if(x)a.push(Object.assign({},x))});a.sort(function(p,q){return p.id-q.id});S.reqs=a;if(S.user&&!(S.user.role==='mhs'&&S.tab==='form'))render()},function(e){DB=null;MODE='lokal';var m2=document.getElementById('mode');if(m2)m2.textContent=modeText()})}).catch(function(){})}catch(e){}})();
+</script>
+</body>
+</html>
